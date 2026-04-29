@@ -1,0 +1,49 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  directUrl  = env("DIRECT_URL")
+  extensions = [pgvector(map: "vector")]
+}
+
+model Entry {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  flavor    Flavor   @default(NOTEBOOK)
+  tags      String[]
+
+  embedding Unsupported("vector(1536)")?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  linksFrom Link[]   @relation("LinkFrom")
+  linksTo   Link[]   @relation("LinkTo")
+
+  @@index([tags], type: Gin)
+  @@index([updatedAt(sort: Desc)])
+}
+
+model Link {
+  id        String   @id @default(cuid())
+  fromId    String
+  toId      String
+  kind      String
+  from      Entry    @relation("LinkFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  to        Entry    @relation("LinkTo",   fields: [toId],   references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([fromId, toId, kind])
+  @@index([fromId])
+  @@index([toId])
+}
+
+enum Flavor {
+  NOTEBOOK
+  DISTILLED
+}
