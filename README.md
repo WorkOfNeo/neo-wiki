@@ -1,36 +1,99 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# NEO Labs Wiki
 
-## Getting Started
+Personal living wiki for NEO Labs work. Two interfaces over one Postgres:
 
-First, run the development server:
+- **MCP server** at `/api/mcp` — Claude can search/read/write entries from any conversation
+- **Web UI** at `/` — force-directed graph, full-text + semantic search, inline editing
+
+## Stack
+
+- Next.js 16 (App Router), Tailwind 4
+- Neon Postgres + pgvector (HNSW cosine index)
+- Prisma 6
+- OpenAI `text-embedding-3-small` (1536 dims)
+- `@modelcontextprotocol/sdk` v1.29 with `WebStandardStreamableHTTPServerTransport`
+- `react-force-graph-2d` for the graph view
+- `@uiw/react-md-editor` + `react-markdown` for editing/rendering
+
+## Setup
 
 ```bash
+npm install
+cp .env.local.example .env.local
+# fill in DATABASE_URL, DIRECT_URL, OPENAI_API_KEY, WIKI_BEARER_TOKEN, WIKI_BASE_URL
+npx dotenv -e .env.local -- prisma migrate deploy
+npx dotenv -e .env.local -- tsx scripts/seed.ts   # optional
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Neon
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Create a project, enable the `vector` extension via the SQL editor: `CREATE EXTENSION IF NOT EXISTS vector;`
+2. Copy the pooled URL → `DATABASE_URL`
+3. Derive the direct URL by removing `-pooler` from the host → `DIRECT_URL` (Prisma migrations need this)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Bearer token
 
-## Learn More
+Generate once and put the same value in `.env.local` and Vercel's env settings:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+openssl rand -hex 32
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## API surface
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### MCP — `POST /api/mcp` (bearer-auth'd)
 
-## Deploy on Vercel
+Tools: `wiki_search`, `wiki_get`, `wiki_write`, `wiki_update`, `wiki_list_recent`. JSON-RPC over HTTP, stateless, returns JSON (no SSE).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### REST
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Method | Path                  | Auth     |
+| ------ | --------------------- | -------- |
+| GET    | `/api/entries`        | open     |
+| POST   | `/api/entries`        | bearer   |
+| GET    | `/api/entries/[id]`   | open     |
+| PATCH  | `/api/entries/[id]`   | bearer   |
+| DELETE | `/api/entries/[id]`   | bearer   |
+| GET    | `/api/graph`          | open     |
+| GET    | `/api/tags`           | open     |
+
+UI write flows go through server actions (`app/actions.ts`) so the bearer never reaches the browser.
+
+## Tag taxonomy
+
+Namespaced strings, case-sensitive:
+
+- `client:` — `mikenta`, `contrast`, `werk`, `2biz`, `viio`, `flc`, `hyper-perfume`
+- `product:` — `clerkr`, `neolabs`
+- `stack:` — `webflow`, `nextjs`, `shopify`, `bedrock`, `openai`, `prisma`, `vercel`, `neon`, `postgres`, `pgvector`, `inngest`, `sharepoint`, `monday`, `mailchimp`, `hubspot`
+- `pattern:` — `rag`, `sync`, `scrape`, `embed`, `form`, `calculator`, `slider`, `system-prompt`
+- `gotcha:` — `bedrock-region`, `translate3d`, `shopify-context`, `cors`, `auth`, `quota`, `monorepo`
+- `lang:` — `danish`, `english`
+
+New tags can be added freely; the UI auto-populates the filter from `unnest(tags)`.
+
+## Edge weights (graph)
+
+For each pair of entries:
+
+- `tag_score` = Jaccard over tag arrays
+- `sem_score` = cosine similarity of embeddings
+- `weight = 0.4 * tag_score + 0.6 * sem_score`
+- emit edge if `weight > 0.35`
+- explicit `Link` rows get `weight = 1.0`
+
+Computed on-the-fly via a single Postgres self-join. Fine up to ~1k entries.
+
+## Deploy to Vercel
+
+1. `vercel --prod` or push to `main`
+2. In Vercel project settings → Environment Variables, add all `.env.local` values
+3. Vercel auto-runs `prisma generate` via the `postinstall` step (added to `package.json`); migrations are not run automatically — deploy them via `prisma migrate deploy` from local first
+4. Register `https://<your-domain>/api/mcp` as a connector in Claude with the bearer token as the auth header
+
+## Repo conventions
+
+- Production branch: `main`
+- Commits: phase-N for build phases, otherwise short imperative
+- `.env.local` is ignored; `.env.local.example` is committed as a template
