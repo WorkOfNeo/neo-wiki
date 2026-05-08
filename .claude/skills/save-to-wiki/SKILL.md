@@ -87,14 +87,54 @@ If work isn't tied to a specific client/product, use `product:neolabs`. New tags
 
 When in doubt, NOTEBOOK.
 
+## Search before writing (mandatory)
+
+Before calling `wiki_write`, **always run `wiki_search`** with the proposed title and a tag filter when the topic clearly maps to a client/product/stack. This prevents duplicates and lets us extend living knowledge instead of fragmenting it.
+
+Decision rule based on top result's `similarity`:
+
+| Top similarity | Action |
+| --- | --- |
+| **≥ 0.75** | Treat as same topic. Ask: *"Found existing entry **'<title>'** (sim 0.XX). Update existing or create new?"* — default to update. |
+| **0.55 – 0.75** | Borderline. Show the user the existing entry's title + preview and ask which path. |
+| **< 0.55** | Genuinely new. Proceed with `wiki_write`. |
+
+### Update flow (when extending)
+
+For **NOTEBOOK** entries: append to the existing content with a dated section divider:
+
+```markdown
+---
+
+## Update — 2026-04-29
+<new findings>
+```
+
+Pass the *full* combined content (existing body + appended section) to `wiki_update`.
+
+For **DISTILLED** entries: replace or rewrite affected sections, since DISTILLED is "current best understanding". Don't append — revise.
+
+`wiki_update` re-embeds automatically when content or title changes.
+
 ## Calling the tool
 
 ```
+// First — search:
+wiki_search({ query: "<proposed title or topic>", tags: [...] })
+
+// Then either:
 wiki_write({
   title: "...",
   content: "...",
   tags: ["client:mikenta", "stack:webflow"],
-  flavor: "NOTEBOOK"  // optional, defaults to NOTEBOOK
+  flavor: "NOTEBOOK"
+})
+
+// Or, when extending an existing entry:
+wiki_update({
+  id: "<existing entry id from search>",
+  content: "<full combined content>",
+  tags: [...]  // optional — only if tags need updating
 })
 ```
 
@@ -108,6 +148,7 @@ Paste the URL the tool returns so Neo can verify:
 
 - ❌ Don't save trivial answers (one-line fixes, well-known commands, things any tutorial covers)
 - ❌ Don't invent client/product tags. Stick to the list above unless Neo confirms a new one
+- ❌ Don't skip the search-before-write step. Duplicate entries are worse than a 200ms search call.
 - ❌ Don't reuse an existing title — `wiki_write` creates a new entry every time. To extend an existing entry, use `wiki_update` instead
 - ❌ Don't dump the entire conversation transcript. Compile only what's worth keeping
 - ❌ Don't write entries that are pure action items / TODOs. The wiki is for accumulated knowledge, not task tracking
