@@ -37,6 +37,10 @@ yarn-error.log*
 # vercel
 .vercel
 
+# claude code runtime
+.claude/scheduled_tasks.lock
+.claude/settings.local.json
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
