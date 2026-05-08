@@ -3,15 +3,15 @@
  * Used by both TagPill and the force graph node coloring.
  */
 const PALETTE: Record<string, string> = {
-  client: "#B5876C",   // warm tan
-  product: "#A88B6E",  // sandy
-  stack: "#6E8A99",    // dusty blue
-  pattern: "#7C8471",  // sage (matches accent)
-  gotcha: "#B66A6A",   // muted red
-  lang: "#8C7CA8",     // dusty purple
+  client: "#C2410C",   // burnt orange
+  product: "#0E7490",  // teal
+  stack: "#1D4ED8",    // strong blue
+  pattern: "#15803D",  // forest green
+  gotcha: "#B91C1C",   // strong red
+  lang: "#7E22CE",     // strong purple
 };
 
-const FALLBACK = "#8a8a8a";
+const FALLBACK = "#525252";
 
 export function tagNamespace(tag: string): string {
   const idx = tag.indexOf(":");
