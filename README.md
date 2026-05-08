@@ -8,7 +8,7 @@ Personal living wiki for NEO Labs work. Two interfaces over one Postgres:
 ## Stack
 
 - Next.js 16 (App Router), Tailwind 4
-- Neon Postgres + pgvector (HNSW cosine index)
+- Railway Postgres + pgvector (HNSW cosine index)
 - Prisma 6
 - OpenAI `text-embedding-3-small` (1536 dims)
 - `@modelcontextprotocol/sdk` v1.29 with `WebStandardStreamableHTTPServerTransport`
@@ -20,21 +20,25 @@ Personal living wiki for NEO Labs work. Two interfaces over one Postgres:
 ```bash
 npm install
 cp .env.local.example .env.local
-# fill in DATABASE_URL, DIRECT_URL, OPENAI_API_KEY, WIKI_BEARER_TOKEN, WIKI_BASE_URL
-npx dotenv -e .env.local -- prisma migrate deploy
-npx dotenv -e .env.local -- tsx scripts/seed.ts   # optional
+# fill in DATABASE_URL (with ?sslmode=require), OPENAI_API_KEY, WIKI_BEARER_TOKEN, WIKI_BASE_URL
+npm run migrate
+npm run seed      # optional — 8 example entries
 npm run dev
 ```
 
-### Neon
+### Railway
 
-1. Create a project, enable the `vector` extension via the SQL editor: `CREATE EXTENSION IF NOT EXISTS vector;`
-2. Copy the pooled URL → `DATABASE_URL`
-3. Derive the direct URL by removing `-pooler` from the host → `DIRECT_URL` (Prisma migrations need this)
+1. New project → **Deploy PostgreSQL**
+2. Postgres service → SQL editor → `CREATE EXTENSION IF NOT EXISTS vector;`
+3. Add a service from this repo (Nixpacks auto-detects Next.js)
+4. App service env vars:
+   - `DATABASE_URL=${{Postgres.DATABASE_PRIVATE_URL}}` (or paste the `*.railway.internal` URL)
+   - `OPENAI_API_KEY`, `WIKI_BEARER_TOKEN`, `WIKI_BASE_URL`
+5. For local migrations: copy the **public** URL from the Postgres service Variables tab and append `?sslmode=require`. Use this in `.env.local`.
 
 ### Bearer token
 
-Generate once and put the same value in `.env.local` and Vercel's env settings:
+Generate once and put the same value in `.env.local` and the Railway service env:
 
 ```bash
 openssl rand -hex 32
@@ -66,7 +70,7 @@ Namespaced strings, case-sensitive:
 
 - `client:` — `mikenta`, `contrast`, `werk`, `2biz`, `viio`, `flc`, `hyper-perfume`
 - `product:` — `clerkr`, `neolabs`
-- `stack:` — `webflow`, `nextjs`, `shopify`, `bedrock`, `openai`, `prisma`, `vercel`, `neon`, `postgres`, `pgvector`, `inngest`, `sharepoint`, `monday`, `mailchimp`, `hubspot`
+- `stack:` — `webflow`, `nextjs`, `shopify`, `bedrock`, `openai`, `prisma`, `vercel`, `neon`, `postgres`, `pgvector`, `inngest`, `sharepoint`, `monday`, `mailchimp`, `hubspot`, `railway`
 - `pattern:` — `rag`, `sync`, `scrape`, `embed`, `form`, `calculator`, `slider`, `system-prompt`
 - `gotcha:` — `bedrock-region`, `translate3d`, `shopify-context`, `cors`, `auth`, `quota`, `monorepo`
 - `lang:` — `danish`, `english`
@@ -85,12 +89,13 @@ For each pair of entries:
 
 Computed on-the-fly via a single Postgres self-join. Fine up to ~1k entries.
 
-## Deploy to Vercel
+## Deploy
 
-1. `vercel --prod` or push to `main`
-2. In Vercel project settings → Environment Variables, add all `.env.local` values
-3. Vercel auto-runs `prisma generate` via the `postinstall` step (added to `package.json`); migrations are not run automatically — deploy them via `prisma migrate deploy` from local first
-4. Register `https://<your-domain>/api/mcp` as a connector in Claude with the bearer token as the auth header
+Railway redeploys on every push to `main`. After the first deploy:
+
+1. App service → **Settings → Networking → Generate Domain** (or attach a custom domain)
+2. Update `WIKI_BASE_URL` env to match
+3. Register `https://<your-domain>/api/mcp` as a connector in Claude with `Authorization: Bearer <WIKI_BEARER_TOKEN>`
 
 ## Repo conventions
 
