@@ -51,13 +51,22 @@ Each result has `similarity` (0-1) and a 300-char `preview`:
 
 When the preview tells you enough, you don't always need to `wiki_get` — save the round-trip.
 
-### 3. Cite the wiki when you use it
+### 3. Cite the wiki when you use it — and verify before trusting
 
 When wiki content informs your answer, name the entry and link to it:
 
 > Per the wiki entry **"Bedrock EU model ID format"** (https://wiki.neo-labs.com/entry/abc123), EU regions need the `eu.`-prefixed model ID …
 
 This lets Neo verify the source and read the full entry if needed.
+
+**Skepticism rule:** the wiki may contain entries that are partially or fully outdated, or (rarely) seeded placeholder content from before the wiki was actively used. Before relying on a wiki entry for a real action:
+
+1. Check the `updatedAt` timestamp. Anything older than ~6 months on a fast-moving stack (Bedrock, MCP SDK, Prisma, Next.js) is suspect — re-verify the specifics before acting.
+2. Read the full body, not just the preview. Previews can hide caveats.
+3. If the entry contradicts something obvious from the user's current context, surface the conflict to the user instead of silently choosing one source.
+4. If the entry feels generic / template-shaped (no specific commands, no real error messages, no concrete commit references), treat it as a starting point, not gospel. Ask the user to confirm before relying on it.
+
+When in doubt, say what the wiki claims AND that you can't independently verify it from this session — let Neo decide which to trust.
 
 ### 4. Be explicit when nothing is in the wiki
 
@@ -86,3 +95,5 @@ Then answer normally. At end of session, consider whether this is worth saving (
 - ❌ Don't search after the user has already given you all the context — the wiki is for *prior* work, not what they just told you
 - ❌ Don't fall back to the wiki when you should use `wiki_list_recent` (e.g. when the user wants orientation, not search)
 - ❌ Don't fabricate citations. If you reference a wiki entry, it must exist and have come from a real `wiki_search` or `wiki_get` call this turn
+- ❌ Don't combine details from multiple weakly-related entries into one synthetic answer. If the wiki has fragments, present the fragments — don't stitch a story.
+- ❌ Don't assume an entry is current. Check `updatedAt`. Old entries on fast-moving stacks need re-verification.

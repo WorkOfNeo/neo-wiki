@@ -13,16 +13,29 @@ Capture session learnings into the NEO Labs wiki so future-Neo (and future-Claud
 - "save this to the wiki", "wiki this", "add to wiki"
 - "remember this", "we should write this down"
 
-**Proactively offer at end of session if:**
-- Solved a non-trivial problem after multiple iterations
-- Discovered a non-obvious gotcha that cost real time to find
-- Made a meaningful architecture decision worth re-reading later
-- The same problem is likely to come up again across NEO projects
+**Proactively offer ONLY when ALL of these are true:**
+- The fix or finding has been **explicitly verified to work** (test passed, build succeeded, command produced expected output, user said "works"/"fixed"/"good")
+- It cost real time to find or reason out (not a single-line config change anyone could google)
+- It's likely to recur on another NEO Labs project, or future-you would benefit from re-reading it
 
-If proactive, ask first — don't auto-write:
+If proactive, ask first — never auto-write:
 > "Worth saving to the wiki? I'd capture: <one-line summary>"
 
-Wait for confirmation before calling `wiki_write`.
+Wait for explicit confirmation before calling `wiki_write`. "Maybe" or silence ≠ confirmation.
+
+## Truthfulness rules (non-negotiable)
+
+The wiki's value depends on entries being accurate. A confidently-wrong entry is worse than no entry — it poisons future searches and wastes future-Neo's time when they trust it. Therefore:
+
+1. **No fabrication.** Every fact, code snippet, command, error message, version number, file path, and config value in the entry must come from something *actually observed in this session*. If you weren't there for it, don't write it.
+2. **Quote, don't paraphrase, errors and outputs.** If the session contains a real error message, paste the verbatim text. Don't write a "polished" version that subtly drifts from reality.
+3. **Distinguish observed from inferred.** If a step was discussed but not actually executed, label it explicitly: *"(reasoned but not tested in this session)"*. If you're unsure something is true, omit it.
+4. **No invented context.** Don't add plausible-sounding "Why this matters" framing if the user didn't actually express that concern. Just say what happened.
+5. **No invented numbers.** Latency figures, line counts, timing, sizes — only include if they were measured in the session. Don't estimate.
+6. **No invented architecture.** If the entry implies a system design (e.g. "we route through Inngest"), that flow must have actually been built or directly described by the user in this session. Don't extrapolate from a tag.
+7. **When in doubt, leave it out.** A short, accurate entry is more valuable than a thorough one with one wrong detail.
+
+If you can't write the entry without speculating, ask the user to fill in the missing facts before saving — or decline to save and explain why.
 
 ## How to compile the entry
 
@@ -152,3 +165,6 @@ Paste the URL the tool returns so Neo can verify:
 - ❌ Don't reuse an existing title — `wiki_write` creates a new entry every time. To extend an existing entry, use `wiki_update` instead
 - ❌ Don't dump the entire conversation transcript. Compile only what's worth keeping
 - ❌ Don't write entries that are pure action items / TODOs. The wiki is for accumulated knowledge, not task tracking
+- ❌ Don't fabricate plausible-sounding details to round out a section. An entry with one invented field is worse than no entry.
+- ❌ Don't save before verification. "I think this fix works" is not a save signal; "I ran the test and it passed" is.
+- ❌ Don't propose to save during active debugging. Save AFTER the work concludes successfully, never mid-flow.
