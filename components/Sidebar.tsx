@@ -63,6 +63,50 @@ export function Sidebar({
     [query, searchResults, recent]
   );
 
+  // Group tags by their `:` prefix into sections, in this order, with
+  // anything unrecognized falling into "Other".
+  const groupedTags = useMemo(() => {
+    const order = [
+      "client",
+      "product",
+      "stack",
+      "pattern",
+      "gotcha",
+      "lang",
+    ] as const;
+    const labels: Record<string, string> = {
+      client: "Clients",
+      product: "Products",
+      stack: "Stack",
+      pattern: "Patterns",
+      gotcha: "Gotchas",
+      lang: "Language",
+      _other: "Other",
+    };
+    const buckets = new Map<string, TagCount[]>();
+    for (const t of tags) {
+      const idx = t.tag.indexOf(":");
+      const ns = idx === -1 ? "_other" : t.tag.slice(0, idx);
+      const arr = buckets.get(ns) ?? [];
+      arr.push(t);
+      buckets.set(ns, arr);
+    }
+    const sections: { ns: string; label: string; items: TagCount[] }[] = [];
+    for (const ns of order) {
+      const items = buckets.get(ns);
+      if (items && items.length) sections.push({ ns, label: labels[ns], items });
+    }
+    // Trailing: any unknown namespaces, then _other.
+    for (const [ns, items] of buckets) {
+      if ((order as readonly string[]).includes(ns) || ns === "_other") continue;
+      sections.push({ ns, label: ns, items });
+    }
+    const other = buckets.get("_other");
+    if (other && other.length)
+      sections.push({ ns: "_other", label: labels._other, items: other });
+    return sections;
+  }, [tags]);
+
   return (
     <aside className="w-72 shrink-0 border-r border-[var(--border)] h-screen overflow-y-auto bg-[var(--background)]">
       <div className="p-5 space-y-6">
@@ -92,24 +136,28 @@ export function Sidebar({
           + New entry
         </Link>
 
-        <section>
-          <h2 className="text-xs uppercase tracking-wider text-[var(--muted)] mb-2">
-            Tags
-          </h2>
-          <div className="flex flex-wrap gap-1.5">
-            {tags.length === 0 && (
-              <span className="text-xs text-[var(--muted)]">No tags yet</span>
-            )}
-            {tags.map((t) => (
-              <TagPill
-                key={t.tag}
-                tag={t.tag}
-                active={selectedTags.includes(t.tag)}
-                onClick={() => onToggleTag(t.tag)}
-              />
-            ))}
-          </div>
-        </section>
+        <div className="space-y-4">
+          {tags.length === 0 && (
+            <span className="text-xs text-[var(--muted)]">No tags yet</span>
+          )}
+          {groupedTags.map((section) => (
+            <section key={section.ns}>
+              <h2 className="text-[10px] uppercase tracking-wider text-[var(--muted)] mb-1.5">
+                {section.label}
+              </h2>
+              <div className="flex flex-wrap gap-1.5">
+                {section.items.map((t) => (
+                  <TagPill
+                    key={t.tag}
+                    tag={t.tag}
+                    active={selectedTags.includes(t.tag)}
+                    onClick={() => onToggleTag(t.tag)}
+                  />
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
 
         <section>
           <h2 className="text-xs uppercase tracking-wider text-[var(--muted)] mb-2">
