@@ -82,23 +82,33 @@ Skip sections that aren't relevant. A 2-paragraph entry is fine if that's all th
 
 ### 3. Tags (mandatory — at least one)
 
-Always include at least one of `client:*` or `product:*`. Add others as relevant.
+Tags are **namespaced text** (`namespace:value`). The wiki app does NOT enforce a fixed vocabulary — Postgres stores them as free-form `text[]`. The lists below are *known values currently in use*, not the universe of allowed values.
 
-- `client:` — `mikenta`, `contrast`, `werk`, `2biz`, `viio`, `flc`, `hyper-perfume`
-- `product:` — `clerkr`, `neolabs`, `neo-wiki`, `taskconnect`
-- `stack:` — `webflow`, `nextjs`, `shopify`, `bedrock`, `openai`, `prisma`, `vercel`, `neon`, `postgres`, `pgvector`, `inngest`, `sharepoint`, `monday`, `mailchimp`, `hubspot`, `railway`, `claude`
-- `pattern:` — `rag`, `sync`, `scrape`, `embed`, `form`, `calculator`, `slider`, `system-prompt`, `agentic-execution`
-- `gotcha:` — `bedrock-region`, `translate3d`, `shopify-context`, `cors`, `auth`, `quota`, `monorepo`
-- `lang:` — `danish`, `english`
-- `scope:` — `internal` (tooling Neo built for himself), `client-facing` (work for paying clients)
+**Read the actual entry context first**, then pick the namespace + value that genuinely describes it. If nothing in the known-values list fits cleanly, **introduce a new value** with the right namespace prefix and add it to this skill file in your write turn so it's discoverable later.
 
-### Picking the right product tag
+#### What each namespace means
 
-- **Specific product/app first**: `product:clerkr`, `product:neo-wiki`, `product:taskconnect`. Use the most specific one — don't tag "neo-wiki built on Railway" as `product:neolabs`, tag it `product:neo-wiki`.
-- **`product:neolabs`** is the catch-all for internal Neo tooling that doesn't have its own app name (one-off scripts, dotfiles, infra patterns, NEO-wide conventions).
-- **Add `scope:internal` or `scope:client-facing`** when it helps disambiguate — useful for graph clustering (internal tooling clusters separately from client work). Optional; don't add if it's obvious from the product tag.
+- **`client:`** — work done *for* a paying client. Value is the client name (slug-cased). Known: `mikenta`, `contrast`, `werk`, `2biz`, `viio`, `flc`, `hyper-perfume`. New value when: a new client engagement.
 
-New tags are fine to introduce — just keep the namespace prefix (`stack:`, `pattern:`, etc). Once a tag is in real use, add it to this list (edit `.claude/skills/save-to-wiki/SKILL.md`).
+- **`product:`** — a specific Neo product or app. Use the *most specific* one. Known: `clerkr` (the SaaS), `neo-wiki` (this wiki), `taskconnect`. `neolabs` is the catch-all for internal tooling that doesn't have its own app name. New value when: a new internal app/tool that's substantial enough to deserve its own bucket.
+
+- **`stack:`** — a technology, framework, library, service, or platform involved. Known: `nextjs`, `bedrock`, `openai`, `prisma`, `postgres`, `pgvector`, `vercel`, `railway`, `neon`, `inngest`, `webflow`, `shopify`, `sharepoint`, `monday`, `mailchimp`, `hubspot`, `claude`. New value when: any tech first appears (e.g. `stack:redis`, `stack:supabase`). Be liberal — these are the most useful filter dimension.
+
+- **`pattern:`** — a *reusable solution shape* observed across projects. Should be transferable, not tied to one client. Known: `rag`, `sync`, `embed`, `form`, `calculator`, `slider`, `system-prompt`, `agentic-execution`, `scrape`. New value when: a recurring approach you'd recognize on another project — `pattern:event-sourcing`, `pattern:hybrid-search`, `pattern:idempotent-webhook`, etc. Don't reuse `pattern:rag` for everything that has retrieval — distinguish meaningfully.
+
+- **`gotcha:`** — *a non-obvious pitfall worth flagging by itself*. Should describe the **trap**, not the technology. Known: `bedrock-region`, `translate3d`, `shopify-context`, `cors`, `auth`, `quota`, `monorepo`. New values are common and welcome — `gotcha:rate-limit`, `gotcha:env-var-quoting`, `gotcha:next-cache-invalidation`, `gotcha:prisma-schema-drift`, `gotcha:webhook-replay`. The bar: would future-Neo, six months later, want to filter the wiki by this specific kind of trap? If yes, give it its own gotcha tag.
+
+- **`scope:`** — orthogonal axis: who this work is *for*. Known: `internal` (tooling Neo built for himself), `client-facing` (work shipped to paying clients). Optional — only add if it's a useful distinction the entry doesn't already encode (e.g. an internal admin script for a Clerkr feature might be `product:clerkr` + `scope:internal`).
+
+- **`lang:`** — only when content is language-specific (Danish prompts, etc.). Known: `danish`, `english`. New value when: another language matters.
+
+#### Tag choice rules
+
+1. **Always include at least one of `client:*` or `product:*`** — this is the "what is this about" anchor.
+2. **Add 2–4 stack/pattern/gotcha tags** — these make the entry findable by topic. An entry with only `product:clerkr` will be hard to retrieve next year; an entry with `product:clerkr + stack:bedrock + gotcha:rate-limit + pattern:agentic-execution` is.
+3. **Prefer specific over generic.** `gotcha:bedrock-region` beats `gotcha:auth`. `pattern:hybrid-search` beats `pattern:rag` if hybrid is what's interesting.
+4. **Don't tag what isn't in the entry.** A tag should map to something actually discussed in the body. If you tagged `gotcha:cors` but didn't write about CORS, drop it.
+5. **When introducing a new value**, write it once in lowercase-with-hyphens form, namespace prefix included. After saving, the value is now part of the live vocabulary — no other action needed.
 
 ### 4. Flavor
 

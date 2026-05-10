@@ -84,6 +84,95 @@ export function Graph({ selectedTags }: { selectedTags: string[] }) {
     };
   }, [data, selectedTags]);
 
+  /**
+   * Compute connected components and pick a label tag for each cluster.
+   * The leader of a component is the highest-degree node — we render the
+   * label near it. Label is the tag with the highest "distinctiveness"
+   * within the component: count_in_component / count_globally. That favors
+   * tags that are concentrated in the cluster over tags that show up
+   * everywhere.
+   */
+  const componentLeaders = useMemo(() => {
+    const leaders = new Map<string, string>(); // node id -> cluster label
+    if (!filtered || filtered.nodes.length === 0) return leaders;
+
+    // Build adjacency
+    const adj = new Map<string, string[]>();
+    for (const n of filtered.nodes) adj.set(n.id, []);
+    for (const l of filtered.links) {
+      const a = endpointId(l.source);
+      const b = endpointId(l.target);
+      adj.get(a)?.push(b);
+      adj.get(b)?.push(a);
+    }
+
+    // Global tag frequency (across all visible nodes)
+    const globalTagCount = new Map<string, number>();
+    for (const n of filtered.nodes) {
+      for (const t of n.tags) {
+        globalTagCount.set(t, (globalTagCount.get(t) ?? 0) + 1);
+      }
+    }
+
+    const visited = new Set<string>();
+    const nodeById = new Map(filtered.nodes.map((n) => [n.id, n]));
+
+    for (const start of filtered.nodes) {
+      if (visited.has(start.id)) continue;
+      // BFS the component
+      const comp: string[] = [];
+      const queue = [start.id];
+      visited.add(start.id);
+      while (queue.length) {
+        const cur = queue.shift()!;
+        comp.push(cur);
+        for (const next of adj.get(cur) ?? []) {
+          if (!visited.has(next)) {
+            visited.add(next);
+            queue.push(next);
+          }
+        }
+      }
+      if (comp.length < 2) continue; // singletons get no label
+
+      // Pick the leader: highest degree
+      let leaderId = comp[0];
+      let leaderDeg = -1;
+      for (const id of comp) {
+        const deg = (adj.get(id) ?? []).length;
+        if (deg > leaderDeg) {
+          leaderDeg = deg;
+          leaderId = id;
+        }
+      }
+
+      // Pick the label tag: most distinctive (concentrated in cluster)
+      const localCount = new Map<string, number>();
+      for (const id of comp) {
+        const n = nodeById.get(id);
+        if (!n) continue;
+        for (const t of n.tags) {
+          localCount.set(t, (localCount.get(t) ?? 0) + 1);
+        }
+      }
+      let bestTag = "";
+      let bestScore = -1;
+      for (const [tag, lc] of localCount) {
+        const gc = globalTagCount.get(tag) ?? 1;
+        // Distinctiveness: how concentrated is this tag in the cluster
+        // relative to globally? Plus a small absolute-count term so
+        // single-occurrence tags don't win on a pure ratio.
+        const score = (lc / gc) * Math.sqrt(lc);
+        if (score > bestScore) {
+          bestScore = score;
+          bestTag = tag;
+        }
+      }
+      if (bestTag) leaders.set(leaderId, bestTag);
+    }
+    return leaders;
+  }, [filtered]);
+
   return (
     <div
       ref={containerRef}
@@ -125,6 +214,38 @@ export function Graph({ selectedTags }: { selectedTags: string[] }) {
               ctx.textAlign = "center";
               ctx.textBaseline = "top";
               ctx.fillText(node.title, node.x, node.y + r + 2 / globalScale);
+            }
+            // Cluster leader label — always rendered, regardless of zoom.
+            // Sits ABOVE the node so it doesn't fight with node titles below.
+            const clusterLabel = componentLeaders.get(node.id);
+            if (clusterLabel) {
+              const fontSize = Math.max(11, 14 / globalScale);
+              ctx.font = `600 ${fontSize}px ui-sans-serif, system-ui, sans-serif`;
+              const padX = 5 / globalScale;
+              const padY = 3 / globalScale;
+              const metrics = ctx.measureText(clusterLabel);
+              const w = metrics.width + padX * 2;
+              const h = fontSize + padY * 2;
+              const cx = node.x;
+              const cy = node.y - r - h / 2 - 6 / globalScale;
+              // Soft pill background so the label is readable against any cluster color
+              ctx.fillStyle = "rgba(255,255,255,0.92)";
+              ctx.strokeStyle = primaryColor(node.tags);
+              ctx.lineWidth = 1 / globalScale;
+              const radius = h / 2;
+              ctx.beginPath();
+              ctx.moveTo(cx - w / 2 + radius, cy - h / 2);
+              ctx.lineTo(cx + w / 2 - radius, cy - h / 2);
+              ctx.arc(cx + w / 2 - radius, cy, radius, -Math.PI / 2, Math.PI / 2);
+              ctx.lineTo(cx - w / 2 + radius, cy + h / 2);
+              ctx.arc(cx - w / 2 + radius, cy, radius, Math.PI / 2, -Math.PI / 2);
+              ctx.closePath();
+              ctx.fill();
+              ctx.stroke();
+              ctx.fillStyle = "#1f1f1f";
+              ctx.textAlign = "center";
+              ctx.textBaseline = "middle";
+              ctx.fillText(clusterLabel, cx, cy);
             }
           }}
           nodePointerAreaPaint={(rawNode, color, ctx) => {
