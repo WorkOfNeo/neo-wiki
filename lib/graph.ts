@@ -15,9 +15,15 @@ export interface GraphLink {
   kind: "semantic" | "explicit";
 }
 
-const TAG_WEIGHT = 0.4;
-const SEM_WEIGHT = 0.6;
-const THRESHOLD = 0.35;
+const TAG_WEIGHT = 0.3;
+const SEM_WEIGHT = 0.7;
+const THRESHOLD = 0.45;
+/** Tags present in more than this fraction of entries are excluded from
+ *  Jaccard similarity. Stops "we're all Clerkr / all Next.js" from creating
+ *  spurious edges between unrelated entries that happen to share a global
+ *  tag. Self-tunes as the wiki grows: a once-rare tag can become "common"
+ *  and drop out of the similarity calculation automatically. */
+const COMMON_TAG_THRESHOLD = 0.5;
 
 /**
  * Compute graph nodes + edges. For < ~1k entries this is fine to do on
@@ -38,6 +44,9 @@ export async function buildGraph(): Promise<{
 
   // Pairwise edges: tag Jaccard + cosine similarity, restricted to upper
   // triangle (a.id < b.id) so we never emit duplicates.
+  // `common_tags` filters out tags present in > COMMON_TAG_THRESHOLD of
+  // entries — those are background, not signal. `filtered_tags` is each
+  // entry's tag list minus the common ones, used for Jaccard.
   const pairs = await prisma.$queryRawUnsafe<
     {
       a: string;
@@ -45,7 +54,25 @@ export async function buildGraph(): Promise<{
       tag_score: number;
       sem_score: number;
     }[]
-  >(`
+  >(
+    `
+    WITH total AS (SELECT COUNT(*)::float AS n FROM "Entry"),
+    common_tags AS (
+      SELECT t AS tag
+      FROM (SELECT unnest(tags) AS t FROM "Entry") tt
+      GROUP BY t
+      HAVING COUNT(*)::float / (SELECT n FROM total) > $1
+    ),
+    filtered AS (
+      SELECT
+        e.id,
+        e.embedding,
+        ARRAY(
+          SELECT t FROM unnest(e.tags) t
+          WHERE t NOT IN (SELECT tag FROM common_tags)
+        ) AS tags
+      FROM "Entry" e
+    )
     SELECT
       a.id AS a,
       b.id AS b,
@@ -58,9 +85,11 @@ export async function buildGraph(): Promise<{
         WHEN a.embedding IS NULL OR b.embedding IS NULL THEN 0
         ELSE 1 - (a.embedding <=> b.embedding)
       END AS sem_score
-    FROM "Entry" a
-    JOIN "Entry" b ON a.id < b.id
-  `);
+    FROM filtered a
+    JOIN filtered b ON a.id < b.id
+  `,
+    COMMON_TAG_THRESHOLD
+  );
 
   const explicit = await prisma.link.findMany({
     select: { fromId: true, toId: true },
