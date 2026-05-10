@@ -22,8 +22,17 @@ export function tagColor(tag: string): string {
   return PALETTE[tagNamespace(tag)] ?? FALLBACK;
 }
 
+/**
+ * Priority for graph node coloring. Most-specific namespaces first so the
+ * node color reflects what makes the entry distinctive — a gotcha colored
+ * red is more useful than the same node colored teal because it happens
+ * to also have product:neolabs.
+ *
+ * Sidebar tag pills don't use this — they color by their own namespace.
+ * Only the per-node primary color is affected.
+ */
 export function primaryNamespace(tags: string[]): string {
-  for (const ns of ["client", "product", "stack", "pattern", "gotcha", "lang"]) {
+  for (const ns of ["gotcha", "pattern", "stack", "lang", "client", "product"]) {
     if (tags.some((t) => tagNamespace(t) === ns)) return ns;
   }
   return "";
