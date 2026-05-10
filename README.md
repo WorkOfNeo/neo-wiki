@@ -69,13 +69,14 @@ UI write flows go through server actions (`app/actions.ts`) so the bearer never 
 Namespaced strings, case-sensitive:
 
 - `client:` — `mikenta`, `contrast`, `werk`, `2biz`, `viio`, `flc`, `hyper-perfume`
-- `product:` — `clerkr`, `neolabs`
-- `stack:` — `webflow`, `nextjs`, `shopify`, `bedrock`, `openai`, `prisma`, `vercel`, `neon`, `postgres`, `pgvector`, `inngest`, `sharepoint`, `monday`, `mailchimp`, `hubspot`, `railway`
-- `pattern:` — `rag`, `sync`, `scrape`, `embed`, `form`, `calculator`, `slider`, `system-prompt`
+- `product:` — `clerkr`, `neolabs`, `neo-wiki`, `taskconnect`
+- `stack:` — `webflow`, `nextjs`, `shopify`, `bedrock`, `openai`, `prisma`, `vercel`, `neon`, `postgres`, `pgvector`, `inngest`, `sharepoint`, `monday`, `mailchimp`, `hubspot`, `railway`, `claude`
+- `pattern:` — `rag`, `sync`, `scrape`, `embed`, `form`, `calculator`, `slider`, `system-prompt`, `agentic-execution`
 - `gotcha:` — `bedrock-region`, `translate3d`, `shopify-context`, `cors`, `auth`, `quota`, `monorepo`
 - `lang:` — `danish`, `english`
+- `scope:` — `internal`, `client-facing` (optional; helps the graph cluster internal tooling separately from client work)
 
-New tags can be added freely; the UI auto-populates the filter from `unnest(tags)`.
+New tags can be added freely — they're free-form `text[]` in Postgres. Just keep the namespace prefix and update `.claude/skills/save-to-wiki/SKILL.md` so future Claude sessions know about them.
 
 ## Edge weights (graph)
 

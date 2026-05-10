@@ -85,13 +85,20 @@ Skip sections that aren't relevant. A 2-paragraph entry is fine if that's all th
 Always include at least one of `client:*` or `product:*`. Add others as relevant.
 
 - `client:` — `mikenta`, `contrast`, `werk`, `2biz`, `viio`, `flc`, `hyper-perfume`
-- `product:` — `clerkr`, `neolabs`
-- `stack:` — `webflow`, `nextjs`, `shopify`, `bedrock`, `openai`, `prisma`, `vercel`, `neon`, `postgres`, `pgvector`, `inngest`, `sharepoint`, `monday`, `mailchimp`, `hubspot`, `railway`
-- `pattern:` — `rag`, `sync`, `scrape`, `embed`, `form`, `calculator`, `slider`, `system-prompt`
+- `product:` — `clerkr`, `neolabs`, `neo-wiki`, `taskconnect`
+- `stack:` — `webflow`, `nextjs`, `shopify`, `bedrock`, `openai`, `prisma`, `vercel`, `neon`, `postgres`, `pgvector`, `inngest`, `sharepoint`, `monday`, `mailchimp`, `hubspot`, `railway`, `claude`
+- `pattern:` — `rag`, `sync`, `scrape`, `embed`, `form`, `calculator`, `slider`, `system-prompt`, `agentic-execution`
 - `gotcha:` — `bedrock-region`, `translate3d`, `shopify-context`, `cors`, `auth`, `quota`, `monorepo`
 - `lang:` — `danish`, `english`
+- `scope:` — `internal` (tooling Neo built for himself), `client-facing` (work for paying clients)
 
-If work isn't tied to a specific client/product, use `product:neolabs`. New tags are fine to introduce — just keep the namespace prefix (`stack:`, `pattern:`, etc).
+### Picking the right product tag
+
+- **Specific product/app first**: `product:clerkr`, `product:neo-wiki`, `product:taskconnect`. Use the most specific one — don't tag "neo-wiki built on Railway" as `product:neolabs`, tag it `product:neo-wiki`.
+- **`product:neolabs`** is the catch-all for internal Neo tooling that doesn't have its own app name (one-off scripts, dotfiles, infra patterns, NEO-wide conventions).
+- **Add `scope:internal` or `scope:client-facing`** when it helps disambiguate — useful for graph clustering (internal tooling clusters separately from client work). Optional; don't add if it's obvious from the product tag.
+
+New tags are fine to introduce — just keep the namespace prefix (`stack:`, `pattern:`, etc). Once a tag is in real use, add it to this list (edit `.claude/skills/save-to-wiki/SKILL.md`).
 
 ### 4. Flavor
 

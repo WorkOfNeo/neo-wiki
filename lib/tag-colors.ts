@@ -9,6 +9,7 @@ const PALETTE: Record<string, string> = {
   pattern: "#15803D",  // forest green
   gotcha: "#B91C1C",   // strong red
   lang: "#7E22CE",     // strong purple
+  scope: "#92400E",    // dark amber
 };
 
 const FALLBACK = "#525252";
@@ -32,7 +33,7 @@ export function tagColor(tag: string): string {
  * Only the per-node primary color is affected.
  */
 export function primaryNamespace(tags: string[]): string {
-  for (const ns of ["gotcha", "pattern", "stack", "lang", "client", "product"]) {
+  for (const ns of ["gotcha", "pattern", "stack", "scope", "lang", "client", "product"]) {
     if (tags.some((t) => tagNamespace(t) === ns)) return ns;
   }
   return "";
