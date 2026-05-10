@@ -23,6 +23,10 @@ Search the NEO Labs wiki for relevant prior knowledge before answering — so Ne
 
 ## Procedure
 
+### 0. (Optional) Orient with `wiki_tags`
+
+If you're not sure which tags exist, call `wiki_tags` (optionally filtered by namespace) to see the live vocabulary with counts. This is the wiki's folksonomy — values emerge from use, not from a fixed schema. Useful when the user mentions a topic you'd want to filter by but you don't know the exact tag.
+
 ### 1. Search before answering
 
 The MCP server is `neo-labs-wiki`. Tools: `wiki_search`, `wiki_get`, `wiki_list_recent`.

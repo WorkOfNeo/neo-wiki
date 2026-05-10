@@ -68,15 +68,19 @@ UI write flows go through server actions (`app/actions.ts`) so the bearer never 
 
 Namespaced strings, case-sensitive:
 
-- `client:` — `mikenta`, `contrast`, `werk`, `2biz`, `viio`, `flc`, `hyper-perfume`
-- `product:` — `clerkr`, `neolabs`, `neo-wiki`, `taskconnect`
-- `stack:` — `webflow`, `nextjs`, `shopify`, `bedrock`, `openai`, `prisma`, `vercel`, `neon`, `postgres`, `pgvector`, `inngest`, `sharepoint`, `monday`, `mailchimp`, `hubspot`, `railway`, `claude`
-- `pattern:` — `rag`, `sync`, `scrape`, `embed`, `form`, `calculator`, `slider`, `system-prompt`, `agentic-execution`
-- `gotcha:` — `bedrock-region`, `translate3d`, `shopify-context`, `cors`, `auth`, `quota`, `monorepo`
-- `lang:` — `danish`, `english`
-- `scope:` — `internal`, `client-facing` (optional; helps the graph cluster internal tooling separately from client work)
+The wiki uses a **living folksonomy**, not a closed schema. Tags are free-form `text[]` in Postgres — values emerge from use. The `save-to-wiki` skill defines what each *namespace* means (slow-changing constitution); the *values* in each namespace are whatever has been used so far (fast-changing dictionary).
 
-New tags can be added freely — they're free-form `text[]` in Postgres. Just keep the namespace prefix and update `.claude/skills/save-to-wiki/SKILL.md` so future Claude sessions know about them.
+Stable namespaces:
+
+- `client:<slug>` — work for a paying client
+- `product:<slug>` — a specific Neo product or app
+- `stack:<slug>` — a technology / library / platform involved
+- `pattern:<slug>` — a reusable solution shape
+- `gotcha:<slug>` — a specific non-obvious pitfall
+- `scope:<slug>` — orthogonal axis: internal / client-facing
+- `lang:<slug>` — when the content is language-specific
+
+To see the current live vocabulary in any namespace, call the `wiki_tags` MCP tool (or `GET /api/tags`). New values appear automatically when first used in a `wiki_write` call — no skill edit, no migration.
 
 ## Edge weights (graph)
 

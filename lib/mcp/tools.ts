@@ -6,6 +6,7 @@ import {
   searchEntries,
   listRecent,
 } from "../wiki";
+import { prisma } from "../db";
 
 const BASE_URL = process.env.WIKI_BASE_URL ?? "http://localhost:3000";
 
@@ -179,6 +180,41 @@ export const toolDefinitions: ToolDefinition[] = [
         id: entry.id,
         url: `${BASE_URL}/entry/${entry.id}`,
         title: entry.title,
+      };
+    },
+  },
+
+  {
+    name: "wiki_tags",
+    description:
+      "Discover the live tag vocabulary in use across the wiki. Returns every distinct tag with its usage count, sorted by count then alphabetical. Use this BEFORE proposing tags for a new entry so you can reuse existing values when they fit. The tag space is free-form (Postgres text[]); new values are introduced by simply using them via wiki_write — no schema migration required. So this tool's output is the current state of the folksonomy, not a closed allow-list.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        namespace: {
+          type: "string",
+          description:
+            "Optional: filter to one namespace prefix (e.g. 'gotcha' returns only tags like 'gotcha:rate-limit'). Omit to see all.",
+        },
+      },
+    },
+    handler: async (args) => {
+      const input = z
+        .object({ namespace: z.string().optional() })
+        .parse(args);
+      const rows = await prisma.$queryRawUnsafe<
+        { tag: string; count: bigint }[]
+      >(
+        `SELECT t AS tag, COUNT(*)::bigint AS count
+         FROM "Entry", unnest(tags) t
+         ${input.namespace ? `WHERE t LIKE $1` : ``}
+         GROUP BY t
+         ORDER BY count DESC, tag ASC`,
+        ...(input.namespace ? [`${input.namespace}:%`] : [])
+      );
+      return {
+        tags: rows.map((r) => ({ tag: r.tag, count: Number(r.count) })),
+        note: "Tags are free-form. To introduce a new value, just use it in wiki_write — it'll appear here next time. The skill's namespace definitions are the only durable rule; specific values are emergent.",
       };
     },
   },
